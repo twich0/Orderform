@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Order Form</title>
+
+<style>
+body{
+font-family: Arial;
+margin:40px;
+}
+
+/* Form styling */
+fieldset{
+padding:20px;
+margin-bottom:20px;
+border:1px solid #ccc;
+border-radius:8px;
+}
+
+input, textarea, select{
+padding:8px;
+margin:5px 0 10px;
+width:250px;
+}
+
+button{
+padding:10px 20px;
+background:black;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+/* Success page */
+.submitted-style{
+text-align:center;
+}
+
+.success-title{
+color:green;
+font-size:84px;
+font-weight:800;
+margin:20px 0;
+}
+
+.payment-pending{
+color:#f1c40f;
+font-size:28px;
+margin-top:20px;
+}
+
+.hourglass{
+font-size:80px;
+animation:spin 2s linear infinite;
+}
+
+/* 🔵 RING SPINNER (UPGRADED) */
+.loader{
+width:120px;
+height:120px;
+border-radius:50%;
+border:10px solid rgba(52,152,219,0.2);
+border-top:10px solid #3498db;
+border-right:10px solid #2980b9;
+margin:40px auto;
+animation:spin 0.9s linear infinite;
+box-shadow:0 0 20px rgba(52,152,219,0.5);
+}
+
+@keyframes spin{
+0%{transform:rotate(0);}
+100%{transform:rotate(360deg);}
+}
+</style>
+</head>
+
+<body>
+
+<p><strong>Order ID:</strong> <span id="orderID"></span></p>
+
+<h1>Order Form</h1>
+<p>Kindly proceed with order registration.</p>
+
+<form method="POST" action="https://formcarry.com/s/bItoDQJaK3C">
+<input type="hidden" name="order_id" id="order_id">
+
+<fieldset>
+<legend><h4>Personal Info</h4></legend>
+
+<label>Name:</label><br>
+<input type="text" name="name" required><br>
+
+<label>Phone:</label><br>
+<input type="tel" name="phone" required><br>
+
+<label>Address:</label><br>
+<textarea name="address" required></textarea><br>
+
+<label>Item(s):</label><br>
+<input type="text" name="items"><br>
+
+<label>Size:</label><br>
+<input type="text" name="size" required>
+</fieldset>
+
+<fieldset>
+<legend><h4>Shipping</h4></legend>
+
+<label>Item Price ($)</label><br>
+<input type="number" id="price" value="0" onchange="calculateTotal()">
+
+<h4>Shipping Method</h4>
+
+<label><input type="checkbox" value="9" onchange="calculateTotal()"> Standard ($9)</label><br>
+<label><input type="checkbox" value="15" onchange="calculateTotal()"> Expedited ($15)</label><br>
+<label><input type="checkbox" value="25" onchange="calculateTotal()"> Overnight ($25)</label>
+
+<h3>Total: $<span id="total">0</span></h3>
+<input type="hidden" name="total_price" id="total_price">
+</fieldset>
+
+<fieldset>
+<legend><h4>Payment</h4></legend>
+
+<select id="payment" name="payment" required onchange="showPaymentInfo()">
+<option value="">Select payment method</option>
+<option value="zelle">Zelle</option>
+<option value="paypal">PayPal</option>
+<option value="crypto">Crypto</option>
+<option value="etransfer">E-transfer</option>
+<option value="bank">Bank transfer</option>
+<option value="taptap">TapTap Send</option>
+<option value="cashapp">Cash App</option>
+</select>
+
+<p><strong>Selected Payment:</strong></p>
+<p id="selectedPayment">None</p>
+
+<p id="paymentDescription"></p>
+
+</fieldset>
+
+<label>Additional Notes</label><br>
+<textarea name="comments"></textarea>
+
+<br><br>
+<button type="submit">Submit Order</button>
+
+</form>
+
+<script>
+
+/* TOTAL */
+function calculateTotal(){
+let price = document.getElementById("price").value;
+let shipping = document.querySelectorAll('input[type="checkbox"]:checked');
+
+let cost = 0;
+shipping.forEach(s => cost += Number(s.value));
+
+let total = Number(price) + cost;
+
+document.getElementById("total").innerText = total;
+document.getElementById("total_price").value = total;
+}
+
+/* ORDER ID */
+function generateOrderID(){
+let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+let id = "ORD-" + letters[Math.floor(Math.random()*26)] + Math.floor(100000 + Math.random()*900000);
+
+document.getElementById("orderID").innerText = id;
+document.getElementById("order_id").value = id;
+}
+window.onload = generateOrderID;
+
+/* PAYMENT INFO */
+function showPaymentInfo(){
+let method = document.getElementById("payment").value;
+let text = "";
+
+switch(method){
+case "paypal": text="You’ll receive a PayPal request."; break;
+case "crypto": text="Crypto wallet details will be sent."; break;
+case "bank": text="Bank details will be provided."; break;
+case "zelle": text="Zelle payment info will be shared."; break;
+case "cashapp": text="Cash App instructions will be sent."; break;
+case "taptap": text="Use TapTap Send after confirmation."; break;
+case "etransfer": text="E-transfer details will be provided."; break;
+}
+
+document.getElementById("selectedPayment").innerText = method || "None";
+document.getElementById("paymentDescription").innerText = text;
+}
+
+/* SUBMIT */
+document.querySelector("form").addEventListener("submit", function(e){
+
+e.preventDefault();
+let form = this;
+let id = document.getElementById("orderID").innerText;
+
+/* 🔄 LOADING SCREEN */
+document.body.innerHTML = `
+<h1 style="font-size:50px;">Processing Order...</h1>
+<div class="loader"></div>
+`;
+
+/* ⏳ DELAY */
+setTimeout(()=>{
+
+fetch(form.action,{
+method:"POST",
+body:new FormData(form),
+headers:{'Accept':'application/json'}
+}).then(res=>{
+
+if(res.ok){
+
+document.body.classList.add("submitted-style");
+
+document.body.innerHTML = `
+<p style="font-size:24px;">Order ID: ${id}</p>
+<h1 class="success-title">Order Submitted</h1>
+<p class="payment-pending">Payment Pending...</p>
+<div class="hourglass">⏳</div>
+<p style="color:red;font-size:30px;font-weight:700;max-width:600px;margin:20px auto;">
+Order received! Payment details will be provided shortly for order completion.
+</p>
+`;
+
+}else{
+alert("Submission failed");
+}
+
+});
+
+},2000);
+
+});
+</script>
+
+</body>
+</html>
