@@ -311,6 +311,27 @@ label {
     color: #94a3b8;
 }
 
+/* Dynamic Payment Context Notice styling */
+.email-notice-box {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Footer Layout Elements */
 .form-footer {
     display: flex;
@@ -620,17 +641,19 @@ button.btn-back:hover {
                     <label>Payment Method</label>
                     <div class="input-container">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
-                        <select name="payment_method">
+                        <select name="payment_method" id="paymentMethodSelect" onchange="updateSummary()">
                             <option value="">Select Payment Method</option>
-                            <option>Zelle</option>
-                            <option>PayPal</option>
-                            <option>Crypto</option>
-                            <option>E-transfer</option>
-                            <option>Bank Transfer</option>
-                            <option>TapTap Send</option>
-                            <option>Cash App</option>
+                            <option value="Zelle">Zelle</option>
+                            <option value="PayPal">PayPal</option>
+                            <option value="Crypto">Crypto</option>
+                            <option value="E-transfer">E-transfer</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="TapTap Send">TapTap Send</option>
+                            <option value="Cash App">Cash App</option>
                         </select>
                     </div>
+
+                    <div id="dynamicPaymentFields"></div>
 
                     <div class="order-summary">
                         <h3>Review Your Order Confirmation</h3>
@@ -638,6 +661,7 @@ button.btn-back:hover {
                         <p><strong>Items:</strong> <span id="summaryItems">---</span></p>
                         <p><strong>Size:</strong> <span id="summarySize">---</span></p>
                         <p><strong>Delivery Address:</strong> <span id="summaryAddress">---</span></p>
+                        <p><strong>Payment Method:</strong> <span id="summaryPayment">---</span></p>
                         <p><strong>Total Amount:</strong> $<span id="summaryTotal">0.00</span></p>
                     </div>
 
@@ -668,7 +692,7 @@ let currentStep = 0;
 const steps = document.querySelectorAll(".step");
 const trackerSteps = document.querySelectorAll(".tracker-step");
 const progressLineFill = document.getElementById("activeProgressLine");
-const progressTrackerSection = document.getElementById("progressTrackerSection"); // Target tracker wrapper
+const progressTrackerSection = document.getElementById("progressTrackerSection");
 
 window.onload = function() {
     const randomID = "ORD-" + Math.floor(100000 + Math.random() * 900000);
@@ -689,7 +713,6 @@ function showStep(step) {
     let linePercent = (step / (steps.length - 1)) * 100;
     progressLineFill.style.width = linePercent + "%";
 
-    // Condition to hide tracker layout on the first step (Welcome Intro)
     if (step === 0) {
         progressTrackerSection.style.display = "none";
     } else {
@@ -712,17 +735,53 @@ function prevStep() {
 }
 
 function updateSummary() {
+    const paymentMethod = document.getElementById("paymentMethodSelect").value;
+    
     document.getElementById("summaryItems").innerText = document.getElementById("itemsInput").value || "---";
     document.getElementById("summarySize").innerText = document.getElementById("sizeInput").value || "---";
     document.getElementById("summaryAddress").innerText = document.getElementById("addressInput").value || "---";
+    document.getElementById("summaryPayment").innerText = paymentMethod || "---";
    
     const itemPrice = parseFloat(document.getElementById("itemPriceInput").value) || 0;
     const shippingCost = parseFloat(document.getElementById("shippingMethodSelect").value) || 9;
     const totalAmount = itemPrice + shippingCost;
    
     document.getElementById("summaryTotal").innerText = totalAmount.toFixed(2);
-    // Bind total amount to a hidden form input field to pass explicitly over the API post requests
     document.getElementById("hiddenTotalInput").value = totalAmount.toFixed(2);
+
+    // Dynamic fieldset rendering layout logic
+    const dynamicContainer = document.getElementById("dynamicPaymentFields");
+    
+    if (paymentMethod === "Cash App") {
+        dynamicContainer.innerHTML = `
+            <fieldset style="margin-bottom: 24px; animation: fadeIn 0.3s ease;">
+                <label>Cash App Handle</label>
+                <div class="input-container">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <input type="text" name="cashapp_tag" placeholder="Enter your $Cashtag for payment request" required>
+                </div>
+            </fieldset>
+        `;
+    } else if (paymentMethod === "PayPal") {
+        dynamicContainer.innerHTML = `
+            <fieldset style="margin-bottom: 24px; animation: fadeIn 0.3s ease;">
+                <label>PayPal Account Details</label>
+                <div class="input-container">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    <input type="text" name="paypal_info" placeholder="Enter your PayPal Email or Phone number" required>
+                </div>
+            </fieldset>
+        `;
+    } else if (paymentMethod !== "") {
+        dynamicContainer.innerHTML = `
+            <div class="email-notice-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span>Payment details will be sent to your email.</span>
+            </div>
+        `;
+    } else {
+        dynamicContainer.innerHTML = "";
+    }
 }
 </script>
 
